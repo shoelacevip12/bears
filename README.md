@@ -1,3 +1,4 @@
+![](./0bnj-rVRM76YUaX66QSkc_0YyixHTZE8sxAf3u8GFMSi1s86uD84Oy2B9tHhHG_xNWhjQCjIShX1mzGcdc9rxoG8.jpg)
 # TeamSpeak 6 + ts6-manager Docker Setup
 
 Проект `ts6-manager` от clusterzx подходит для управления TeamSpeak 6, так как он использует современный **WebQuery HTTP API** (а не устаревший Telnet)
