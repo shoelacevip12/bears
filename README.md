@@ -180,11 +180,12 @@ TS_ALLOW_SELF_SIGNED=true
 3. Убедитесь, что указанные в `.env` папки существуют и у Docker есть права на запись в них:
 
    ```bash
-   mkdir -p /volume1/teamspeak/ts6
-   mkdir -p /volume1/docker/ts6_project/backend/backend-data
-   mkdir -p /volume1/docker/ts6_project/backend/music-data
-   chmod -R 777 /volume1/teamspeak/ts6
-   chmod -R 777 /volume1/docker/ts6_project/backend
+   mkdir -vp /volume1/teamspeak/ts6
+   mkdir -vp /volume1/docker/ts6_project/backend/backend-data
+   mkdir -vp /volume1/docker/ts6_project/backend/music-data
+   # !!Ленивый способ предосталения полных прав!!
+   chmod -vR 777 /volume1/teamspeak/ts6
+   chmod -vR 777 /volume1/docker/ts6_project/backend
    ```
 
 4. Запустите стек командой:
