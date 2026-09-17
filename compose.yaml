@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # TeamSpeak 6 Server
+  # ==========================================
+  teamspeak6:
+    image: teamspeaksystems/teamspeak6-server:latest
+    container_name: teamspeak6
+    restart: unless-stopped
+    networks:
+      - ts6-network
+    ports:
+      - "9987:9987/udp"      # Voice UDP
+      - "30033:30033/tcp"    # File Transfer TCP
+      - "10022:10022/tcp"    # Query SSH TCP
+      - "10080:10080/tcp"    # Query HTTP TCP (Основной для ts6-manager)
+      - "10443:10443/tcp"    # Query HTTPS TCP
+      - "10011:10011/tcp"    # Legacy Query TCP
+      - "3478:3478/udp"      # TURN/STUN UDP
+      - "5349:5349/udp"      # TURN/STUN UDP
+      - "41144:41144/tcp"    # WebQuery TCP
+    volumes:
+      - ${TS6_DATA_PATH}:/var/tsserver
+    environment:
+      - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/tsserver
+      - TSSERVER_DATABASE_SQL_PATH=/opt/tsserver/sql/
+      - TSSERVER_DATABASE_SQL_CREATE_PATH=/opt/tsserver/sql/create_sqlite/
+      - TSSERVER_QUERY_DOCUMENTATION_PATH=/opt/tsserver/serverquerydocs
+      - TSSERVER_LICENSE_ACCEPTED=accept
+      - TSSERVER_DEFAULT_PORT=9987
+      - TSSERVER_VOICE_IP=0.0.0.0
+      - TSSERVER_FILE_TRANSFER_PORT=30033
+      - TSSERVER_QUERY_HTTP_ENABLED=true
+      - TSSERVER_QUERY_SSH_ENABLED=true
+      - TSSERVER_QUERY_ADMIN_PASSWORD=${TS6_QUERY_ADMIN_PASSWORD}
+      - TSSERVER_QUERY_HTTP_PORT=10080
+      - TSSERVER_QUERY_SSH_PORT=10022
+      - TSSERVER_VOICE_UDP_THREADS=16
+      - TSSERVER_DATABASE_SKIP_INTEGRITY_CHECK=true
+      - TSSERVER_QUERY_POOL_SIZE=32
+      - TSSERVER_QUERY_LOG_COMMANDS=true
+      - TSSERVER_QUERY_BUFFER_MB=100
+
+  # ==========================================
+  # TS6 Manager - Backend (API и логика)
+  # ==========================================
+  backend:
+    image: clusterzx/ts6-manager:backend
+    container_name: ts6-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE_URL=file:/app/packages/backend/data/ts6webui.db
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - TS_ALLOW_SELF_SIGNED=${TS_ALLOW_SELF_SIGNED:-true}
+      - JWT_ACCESS_EXPIRY=15m
+      - JWT_REFRESH_EXPIRY=7d
+      - FRONTEND_URL=${FRONTEND_URL}
+      - MUSIC_DIR=/data/music
+      - SIDECAR_URL=http://ts6-sidecar:9800
+    volumes:
+      - ${BACKEND_DATA_PATH}:/app/packages/backend/data
+      - ${MUSIC_DATA_PATH}:/data/music
+    ports:
+      - "3001:3001"
+    depends_on:
+      - teamspeak6
+      - sidecar
+    networks:
+      - ts6-network
+
+  # ==========================================
+  # TS6 Manager - Sidecar (WebRTC Streaming)
+  # ==========================================
+  sidecar:
+    image: clusterzx/ts6-manager:sidecar
+    container_name: ts6-sidecar
+    restart: unless-stopped
+    environment:
+      - SIDECAR_PORT=9800
+    ports:
+      - "9800:9800"
+    networks:
+      - ts6-network
+
+  # ==========================================
+  # TS6 Manager - Frontend (Web-интерфейс)
+  # ==========================================
+  frontend:
+    image: clusterzx/ts6-manager:frontend
+    container_name: ts6-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+    networks:
+      - ts6-network
+
+networks:
+  ts6-network:
+    driver: bridge
+    name: ts6-network
